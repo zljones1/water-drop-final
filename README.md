@@ -1,23 +1,24 @@
-# Water Drop
+# charity: water Water Drop — Final Version
 
-A little girl runs the bottom of the field and catches clean rain. Dirty drops cost a life. Clear a round and she gets a breath, then the sky gets meaner.
+A browser game made for charity: water. Catch clean water drops in your jerry can and dodge the polluted ones. This is the final version of the game, built on top of the original prototype.
 
-Play it: https://zljones1.github.io/ZaXX-Tech-Hub/water-drop/
+**Play it live:** https://zljones1.github.io/water-drop-final/
+**Original prototype:** https://zljones1.github.io/ZaXX-Tech-Hub/water-drop/
 
-The source in this repo is the same game. Arrow keys or the on-screen buttons move her. Hold Fast run to sprint. Space pauses.
+## Features
+- A start screen with charity: water branding, falling-drop animation, and a big **Start Your Charity** button
+- Random bad drops: the game picks one of three each time
+  - Muddy water (brown)
+  - Acid rain (green)
+  - Oil drops (black)
+- Bad drops cost you lives and points
+- charity: water milestone messages at 25, 50, and 100 points
+- A game-over card with your score and **Again** / **Back to start** buttons
+- Responsive layout that works with touch on phones and tablets
 
-## charity: water tie-in
-
-The start screen carries the charity: water name in their brand yellow (#FFC907), a short mission line ("Every drop counts — charity: water brings clean water to people in need") and a **Learn more** link to https://www.charitywater.org. Every clean drop you catch is a reminder that clean water isn't a given for everyone.
-
-## Bad drops
-
-Each bad drop picks one of three types at random when it spawns. Every one costs a life and 3 points:
-
-- **Muddy water** (brown) — "Muddy water. Yuck."
-- **Acid rain** (glowing green) — "Acid rain! That burns."
-- **Oil drop** (glossy black) — "Oil spill! Not drinkable."
-
-## Building
-
-`source/` holds the TypeScript/React code. `game.js` is an esbuild bundle of it (React 19 + lucide-react, `@` aliased to `source/`); `game.css` is the prebuilt stylesheet.
+## How to play
+1. Click **Start Your Charity**.
+2. Move the can with the arrow keys, the mouse, or touch.
+3. Catch clean blue drops to score points.
+4. Avoid muddy, acid rain, and oil drops. They take away lives and points.
+5. When you run out of lives, hit **Again** to play another round.
