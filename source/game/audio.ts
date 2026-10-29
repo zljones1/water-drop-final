@@ -110,6 +110,13 @@ export function createAudio() {
       tone({ freq: 659, dur: 0.12, gain: 0.05, delay: 0.08 });
       tone({ freq: 784, dur: 0.18, type: "triangle", gain: 0.045, delay: 0.16 });
     },
+    win() {
+      [523, 659, 784, 1047].forEach((f, i) => tone({ freq: f, dur: 0.22, type: "triangle", gain: 0.05, delay: i * 0.11 }));
+      tone({ freq: 1319, dur: 0.5, gain: 0.04, delay: 0.46 });
+    },
+    click() {
+      tone({ freq: 880, dur: 0.05, type: "triangle", gain: 0.035 });
+    },
     destroy() {
       void ctx?.close();
       ctx = null;

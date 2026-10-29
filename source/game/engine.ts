@@ -19,6 +19,8 @@ import { drawScene } from "./paint";
 import {
   GROUND_Y,
   SAVE_KEY,
+  DIFFICULTIES,
+  type Difficulty,
   WORLD_H,
   WORLD_W,
   type Cloud,
@@ -100,6 +102,8 @@ export type GameApi = {
   destroy: () => void;
   placeDrop: (kind: DropKind, bad?: BadKind) => void;
   toTitle: () => void;
+  setDifficulty: (d: Difficulty) => void;
+  click: () => void;
   getState: () => {
     x: number;
     vx: number;
@@ -130,6 +134,8 @@ export function createGame(canvas: HTMLCanvasElement, onHud: (hud: Hud) => void)
 
   let mode: Mode = "title";
   let score = 0;
+  let difficulty: Difficulty = "normal";
+  const cfg = () => DIFFICULTIES[difficulty];
   let lives = BEST_LIVES;
   let combo = 0;
   let best = save.best;
@@ -230,11 +236,11 @@ export function createGame(canvas: HTMLCanvasElement, onHud: (hud: Hud) => void)
   }
 
   function fallBase() {
-    return 120 + heat() * 170;
+    return (120 + heat() * 170) * cfg().speed;
   }
 
   function spawnEvery() {
-    return Math.max(0.34, 1.12 - heat() * 0.76);
+    return Math.max(0.3, 1.12 - heat() * 0.76) * cfg().spawn;
   }
 
   function emit() {
@@ -251,6 +257,9 @@ export function createGame(canvas: HTMLCanvasElement, onHud: (hud: Hud) => void)
       mode,
       muted: audio.muted,
       newBest,
+      goal: cfg().goal,
+      maxLives: cfg().lives,
+      difficulty,
     });
   }
 
@@ -326,7 +335,7 @@ export function createGame(canvas: HTMLCanvasElement, onHud: (hud: Hud) => void)
 
   function spawnDrop(forced?: DropKind, at?: { x: number; y: number }) {
     const roll = Math.random();
-    const bad = 0.16 + heat() * 0.22;
+    const bad = (0.16 + heat() * 0.22) * (cfg().badChance / 0.26);
     const kind = forced ?? (roll < bad ? "dirty" : roll < bad + 0.07 ? "pure" : "clean");
     const base = fallBase() * (kind === "dirty" ? 1.08 : kind === "pure" ? 0.86 : 1);
     const drop = makeDrop(
@@ -419,6 +428,16 @@ export function createGame(canvas: HTMLCanvasElement, onHud: (hud: Hud) => void)
       fill = quotaFor(sheet);
       pendingClear = true;
     }
+    if (score >= cfg().goal) {
+      mode = "won";
+      newBest = score > best;
+      if (newBest) {
+        best = score;
+        writeSave({ v: 1, best, mute: audio.muted });
+      }
+      audio.win();
+      message = `Goal reached! ${score} drops of clean water.`;
+    }
     emit();
   }
 
@@ -460,7 +479,7 @@ export function createGame(canvas: HTMLCanvasElement, onHud: (hud: Hud) => void)
     const cleared = sheet;
     const bonus = 5 + cleared * 3;
     score += bonus;
-    const healed = lives < BEST_LIVES;
+    const healed = lives < cfg().lives;
     if (healed) lives += 1;
     breath = 2.3;
     for (const drop of drops) ripple(drop.x, drop.kind);
@@ -503,7 +522,7 @@ export function createGame(canvas: HTMLCanvasElement, onHud: (hud: Hud) => void)
   }
 
   function updatePlayer(dt: number) {
-    const move = mode === "over" || mode === "pause" ? 0 : sampleMove();
+    const move = mode === "over" || mode === "won" || mode === "pause" ? 0 : sampleMove();
     const boosting = move !== 0 && mode !== "over" && mode !== "pause" && sampleBoost();
     const cap = boosting ? BOOST_SPEED : MAX_SPEED;
     if (move !== 0) player.vx += move * (boosting ? 7600 : 2400) * dt;
@@ -621,7 +640,7 @@ export function createGame(canvas: HTMLCanvasElement, onHud: (hud: Hud) => void)
       drop.prevX = drop.x;
       drop.prevY = drop.y;
     }
-    if (mode === "pause" || mode === "over") return;
+    if (mode === "pause" || mode === "over" || mode === "won") return;
     updateWind(dt);
     if (breath > 0) {
       breath -= dt;
@@ -763,7 +782,7 @@ export function createGame(canvas: HTMLCanvasElement, onHud: (hud: Hud) => void)
   function start() {
     audio.unlock();
     score = 0;
-    lives = BEST_LIVES;
+    lives = cfg().lives;
     combo = 0;
     newBest = false;
     spawn = 0;
@@ -815,7 +834,7 @@ export function createGame(canvas: HTMLCanvasElement, onHud: (hud: Hud) => void)
     if (e.repeat) return;
     keys.add(e.code);
     if (e.code === "Space" || e.code === "Enter") {
-      if (mode === "title" || mode === "over") start();
+      if (mode === "title" || mode === "over" || mode === "won") start();
       else togglePause();
     } else if (e.code === "Escape" || e.code === "KeyP") {
       togglePause();
@@ -843,7 +862,7 @@ export function createGame(canvas: HTMLCanvasElement, onHud: (hud: Hud) => void)
 
   function onPointerDown(e: PointerEvent) {
     if (!e.isPrimary || e.button !== 0) return;
-    if (mode === "over") return;
+    if (mode === "over" || mode === "won") return;
     pointerId = e.pointerId;
     try {
       canvas.setPointerCapture(e.pointerId);
@@ -901,6 +920,15 @@ export function createGame(canvas: HTMLCanvasElement, onHud: (hud: Hud) => void)
       spawnDrop(kind, { x: player.x + player.facing * 8, y: GROUND_Y - 70 });
       const last = drops[drops.length - 1];
       if (last && bad && kind === "dirty") last.bad = bad;
+    },
+    setDifficulty(d) {
+      if (mode === "play" || mode === "pause") return;
+      difficulty = d;
+      lives = cfg().lives;
+      emit();
+    },
+    click() {
+      audio.click();
     },
     toTitle() {
       if (mode === "play") return;

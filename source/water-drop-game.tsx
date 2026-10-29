@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode, type PointerEvent } from "react";
-import { Heart, Pause, Volume2, VolumeX } from "lucide-react";
+import { Heart, Pause, RotateCcw, Volume2, VolumeX } from "lucide-react";
 import { createGame, type GameApi } from "@/game/engine";
-import type { Hud } from "@/game/types";
+import { DIFFICULTIES, type Difficulty, type Hud } from "@/game/types";
 
 const INITIAL: Hud = {
   score: 0,
@@ -15,6 +15,9 @@ const INITIAL: Hud = {
   mode: "title",
   muted: false,
   newBest: false,
+  goal: 75,
+  maxLives: 3,
+  difficulty: "normal",
 };
 
 export function WaterDropGame() {
@@ -39,7 +42,7 @@ export function WaterDropGame() {
 
   const playing = hud.mode === "play";
   const primary =
-    hud.mode === "pause" ? "Resume" : hud.mode === "title" ? "Start" : hud.mode === "over" ? "Again" : "Restart";
+    hud.mode === "pause" ? "Resume" : hud.mode === "title" ? "Start" : hud.mode === "over" || hud.mode === "won" ? "Again" : "Restart";
 
   return (
     <main className="flex h-dvh w-full flex-col bg-ink text-line">
@@ -74,6 +77,30 @@ export function WaterDropGame() {
               </li>
             ))}
           </ul>
+          <div role="radiogroup" aria-label="Difficulty" style={{ display: "flex", gap: 8, marginTop: 4, flexWrap: "wrap", justifyContent: "center" }}>
+            {(Object.keys(DIFFICULTIES) as Difficulty[]).map((d) => {
+              const on = hud.difficulty === d;
+              const c = DIFFICULTIES[d];
+              return (
+                <button
+                  key={d}
+                  type="button"
+                  role="radio"
+                  aria-checked={on}
+                  className="wd-btn"
+                  onClick={() => { gameRef.current?.setDifficulty(d); gameRef.current?.click(); }}
+                  style={{ padding: "8px 16px", borderRadius: 14, cursor: "pointer", minWidth: 96,
+                    border: on ? "2px solid #FFC907" : "1px solid #3a4a66", background: on ? "rgba(255,201,7,0.14)" : "rgba(255,255,255,0.03)",
+                    color: on ? "#FFC907" : "#dfe8f5", fontWeight: 700, fontSize: 15, lineHeight: 1.2 }}
+                >
+                  {c.label}
+                  <span style={{ display: "block", fontSize: 11, fontWeight: 500, color: on ? "#ffe17a" : "#8fa3c0" }}>
+                    {c.lives} lives · goal {c.goal}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
           <button
             type="button"
             className="wd-btn wd-cta"
@@ -86,9 +113,8 @@ export function WaterDropGame() {
           >
             Start Your Charity
           </button>
-          <a href="https://www.charitywater.org" target="_blank" rel="noopener noreferrer" style={{ color: "#FFC907", fontSize: 15, textDecoration: "underline" }}>
-            Learn more at charitywater.org
-          </a>
+          {hud.best > 0 ? <p style={{ margin: 0, color: "#8BD1CB", fontSize: 14, fontWeight: 700 }}>High score: {hud.best}</p> : null}
+          <BrandFooter />
           <p className="text-mist" style={{ fontSize: 12, margin: 0 }}>Arrows or A/D to move · Shift to sprint · P pauses · M mutes</p>
           </div>
         </section>
@@ -107,9 +133,10 @@ export function WaterDropGame() {
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-          <Meter label="Score" value={String(hud.score)} />
+          <span className={hud.mode === "play" ? "wd-pop" : undefined} key={hud.score}><Meter label="Score" value={String(hud.score)} /></span>
+          <Meter label="Goal" value={`${Math.min(hud.score, hud.goal)}/${hud.goal}`} accent />
           <div className="flex items-center gap-1" aria-label={`Lives ${hud.lives}`}>
-            {[0, 1, 2].map((i) => (
+            {Array.from({ length: hud.maxLives }, (_, i) => i).map((i) => (
               <Heart
                 key={i}
                 aria-hidden="true"
@@ -118,7 +145,7 @@ export function WaterDropGame() {
               />
             ))}
           </div>
-          <Meter label="Round" value={`${hud.sheet} · ${hud.fill}/${hud.quota}`} />
+          <span className="wd-hide-xs"><Meter label="Round" value={`${hud.sheet} · ${hud.fill}/${hud.quota}`} /></span>
           <span className="wd-hide-xs">
             <Meter label="Best" value={String(hud.best)} accent />
           </span>
@@ -128,6 +155,9 @@ export function WaterDropGame() {
         </div>
       </header>
 
+      <div aria-hidden="true" style={{ height: 5, background: "rgba(255,255,255,0.08)" }}>
+        <div style={{ height: "100%", width: `${Math.min(100, (hud.score / hud.goal) * 100)}%`, background: "linear-gradient(90deg, #2E9DF7, #8BD1CB, #FFC907)", transition: "width 0.3s ease" }} />
+      </div>
       <div className="relative min-h-0 flex-1">
         <canvas
           ref={canvasRef}
@@ -145,6 +175,7 @@ export function WaterDropGame() {
               <p className="font-display text-line" style={{ fontSize: 44, fontWeight: 700, margin: "6px 0 0" }}>{hud.score}</p>
               <p className="text-sm text-mist" style={{ margin: "2px 0 0" }}>{hud.newBest ? "New best score!" : `Best ${hud.best}`}</p>
               <p className="text-sm text-line" style={{ margin: "10px 0 0" }}>Every drop counts. Thanks for playing for clean water.</p>
+              <a href="https://www.charitywater.org/donate" target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", marginTop: 8, color: "#8BD1CB", fontWeight: 700, fontSize: 14 }}>Donate to charity: water →</a>
               <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 16, flexWrap: "wrap" }}>
                 <button
                   type="button"
@@ -166,6 +197,26 @@ export function WaterDropGame() {
             </div>
           </div>
         ) : null}
+        {hud.mode === "won" ? (
+          <div role="dialog" aria-label="You win" style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", padding: 16, background: "rgba(8,14,28,0.45)" }}>
+            <Confetti />
+            <div className="wd-card wd-rise" style={{ position: "relative", padding: "26px 28px", textAlign: "center", maxWidth: 380, width: "100%", borderColor: "rgba(255,201,7,0.5)" }}>
+              <p style={{ margin: 0, color: "#FFC907", fontWeight: 800, letterSpacing: "0.12em", fontSize: 13, textTransform: "uppercase" }}>You did it!</p>
+              <p className="font-display text-line" style={{ fontSize: 46, fontWeight: 800, margin: "4px 0 0" }}>{hud.score}</p>
+              <p className="text-sm text-mist" style={{ margin: "2px 0 0" }}>
+                {DIFFICULTIES[hud.difficulty].label} goal reached{hud.newBest ? " · New high score!" : ` · Best ${hud.best}`}
+              </p>
+              <p className="text-sm text-line" style={{ margin: "10px 0 0" }}>
+                You brought clean water to a whole village. charity: water does this for real every day.
+              </p>
+              <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 16, flexWrap: "wrap" }}>
+                <button type="button" className="wd-btn" onClick={() => gameRef.current?.start()} style={{ padding: "12px 22px", borderRadius: 999, border: "none", background: "#FFC907", color: "#111", fontWeight: 800, fontSize: 16, cursor: "pointer" }}>Again</button>
+                <button type="button" className="wd-btn" onClick={() => gameRef.current?.toTitle()} style={{ padding: "12px 22px", borderRadius: 999, border: "1px solid #FFC907", background: "transparent", color: "#FFC907", fontWeight: 700, fontSize: 16, cursor: "pointer" }}>Back to start</button>
+              </div>
+              <a href="https://www.charitywater.org/donate" target="_blank" rel="noopener noreferrer" style={{ display: "inline-block", marginTop: 14, color: "#8BD1CB", fontWeight: 700, fontSize: 14 }}>Donate to charity: water →</a>
+            </div>
+          </div>
+        ) : null}
         {hud.mode === "pause" ? (
           <div className="pointer-events-none absolute inset-x-3 top-3 border border-mist bg-ink/90 px-3 py-2">
             <p className="text-xs tracking-widest text-rain uppercase">
@@ -180,17 +231,22 @@ export function WaterDropGame() {
           <p
             className="wd-toast pointer-events-none text-sm text-line"
             aria-hidden="true"
-            style={{ position: "absolute", top: 10, left: 12, right: 64, margin: 0, padding: "6px 10px", borderRadius: 12, background: "rgba(8,14,28,0.7)", textAlign: "center" }}
+            style={{ position: "absolute", top: 10, left: 12, right: 112, margin: 0, padding: "6px 10px", borderRadius: 12, background: "rgba(8,14,28,0.7)", textAlign: "center" }}
           >
             {hud.combo > 1 ? `Streak ×${hud.combo}. ` : ""}
             {hud.message}
           </p>
         ) : null}
-        {playing ? (
-          <div className="absolute top-2 right-2">
-            <IconButton label="Pause" onClick={() => gameRef.current?.togglePause()}>
-              <Pause className="size-4" />
+        {playing || hud.mode === "pause" ? (
+          <div className="absolute top-2 right-2" style={{ display: "flex", gap: 6 }}>
+            <IconButton label="Reset game" onClick={() => gameRef.current?.start()}>
+              <RotateCcw className="size-4" />
             </IconButton>
+            {playing ? (
+              <IconButton label="Pause" onClick={() => gameRef.current?.togglePause()}>
+                <Pause className="size-4" />
+              </IconButton>
+            ) : null}
           </div>
         ) : null}
       </div>
@@ -211,6 +267,11 @@ export function WaterDropGame() {
         </button>
         <HoldButton label="Right" name="Move right" onHold={(down) => hold("right", down)} />
       </div>
+      <footer style={{ display: "flex", justifyContent: "center", gap: 14, padding: "4px 8px calc(4px + env(safe-area-inset-bottom))", fontSize: 11, color: "#8fa3c0", background: "rgba(0,0,0,0.2)" }}>
+        <a href="https://www.charitywater.org" target="_blank" rel="noopener noreferrer" style={{ color: "#FFC907", fontWeight: 800, textDecoration: "none" }}>charity: water</a>
+        <a href="https://www.charitywater.org/donate" target="_blank" rel="noopener noreferrer" style={{ color: "#8BD1CB" }}>Donate</a>
+        <span>Fan game by Zachary Jones</span>
+      </footer>
       <p className="sr-only">
         Arrows or A and D to move. Hold Fast run, Shift, or F to sprint. Tap either half of the sheet, or hold the pads.
         P pauses. M mutes.
@@ -375,4 +436,84 @@ function StartBackdrop() {
       style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }}
     />
   );
+}
+
+function BrandFooter() {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 6, flexWrap: "wrap", justifyContent: "center" }}>
+      <a href="https://www.charitywater.org" target="_blank" rel="noopener noreferrer" aria-label="charity: water website"
+        style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "6px 12px", borderRadius: 10, background: "#FFC907", color: "#111", fontWeight: 800, fontSize: 14, textDecoration: "none" }}>
+        <svg width="16" height="18" viewBox="0 0 16 18" aria-hidden="true"><path d="M3 4h10l1 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6z M5 1h6v3H5z" fill="#111" /></svg>
+        charity: water
+      </a>
+      <a href="https://www.charitywater.org/donate" target="_blank" rel="noopener noreferrer" style={{ color: "#8BD1CB", fontWeight: 700, fontSize: 14 }}>Donate →</a>
+    </div>
+  );
+}
+
+const CONFETTI_COLORS = ["#FFC907", "#2E9DF7", "#8BD1CB", "#4FCB53", "#FF902A", "#F5402C", "#ffffff"];
+
+function Confetti() {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const canvas = ref.current;
+    const ctx = canvas?.getContext("2d");
+    if (!canvas || !ctx) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const dpr = Math.min(2, window.devicePixelRatio || 1);
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    const bits = Array.from({ length: reduce ? 40 : 160 }, () => ({
+      x: w / 2 + (Math.random() - 0.5) * w * 0.3,
+      y: reduce ? Math.random() * h : h * 0.35,
+      vx: (Math.random() - 0.5) * 520,
+      vy: -200 - Math.random() * 420,
+      s: 5 + Math.random() * 6,
+      a: Math.random() * 6.28,
+      va: (Math.random() - 0.5) * 12,
+      c: CONFETTI_COLORS[Math.floor(Math.random() * CONFETTI_COLORS.length)]!,
+    }));
+    const draw = () => {
+      ctx.clearRect(0, 0, w, h);
+      for (const b of bits) {
+        ctx.save();
+        ctx.translate(b.x, b.y);
+        ctx.rotate(b.a);
+        ctx.fillStyle = b.c;
+        ctx.fillRect(-b.s / 2, -b.s / 4, b.s, b.s / 2);
+        ctx.restore();
+      }
+    };
+    if (reduce) {
+      draw();
+      return;
+    }
+    let raf = 0;
+    let last = performance.now();
+    const tick = (now: number) => {
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      for (const b of bits) {
+        b.vy += 520 * dt;
+        b.vx *= 0.99;
+        b.x += b.vx * dt;
+        b.y += b.vy * dt;
+        b.a += b.va * dt;
+        if (b.y > h + 20) {
+          b.y = -10;
+          b.x = Math.random() * w;
+          b.vy = 60 + Math.random() * 120;
+          b.vx = (Math.random() - 0.5) * 80;
+        }
+      }
+      draw();
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+  return <canvas ref={ref} aria-hidden="true" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }} />;
 }

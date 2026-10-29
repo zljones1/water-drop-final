@@ -4,7 +4,13 @@ export const GROUND_Y = 586;
 
 export type DropKind = "clean" | "dirty" | "pure";
 export type BadKind = "mud" | "acid" | "oil";
-export type Mode = "title" | "play" | "pause" | "over";
+export type Mode = "title" | "play" | "pause" | "over" | "won";
+export type Difficulty = "easy" | "normal" | "hard";
+export const DIFFICULTIES: Record<Difficulty, { label: string; lives: number; speed: number; spawn: number; goal: number; badChance: number }> = {
+  easy: { label: "Easy", lives: 5, speed: 0.8, spawn: 1.25, goal: 40, badChance: 0.18 },
+  normal: { label: "Normal", lives: 3, speed: 1, spawn: 1, goal: 75, badChance: 0.26 },
+  hard: { label: "Hard", lives: 2, speed: 1.3, spawn: 0.78, goal: 120, badChance: 0.34 },
+};
 
 export type Drop = {
   x: number;
@@ -76,6 +82,9 @@ export type Hud = {
   mode: Mode;
   muted: boolean;
   newBest: boolean;
+  goal: number;
+  maxLives: number;
+  difficulty: Difficulty;
 };
 
 export type Palette = {
