@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Water Drop</title>
+    <meta name="description" content="Catch the clean rain. Dodge the dirty drops." />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+    <link rel="stylesheet" href="./game.css" />
+    <style>
+      html,
+      body,
+      #root {
+        height: 100%;
+        margin: 0;
+      }
+      .wd-btn { transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease; }
+      .wd-btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
+      .wd-btn:active { transform: translateY(1px); }
+      button:focus-visible, a:focus-visible { outline: 3px solid #FFC907; outline-offset: 3px; }
+      .wd-cta { animation: wd-pulse 2.4s ease-in-out infinite; }
+      .wd-cta:hover { animation-play-state: paused; transform: scale(1.05); }
+      @keyframes wd-pulse {
+        0%, 100% { box-shadow: 0 6px 24px rgba(255, 201, 7, 0.35), 0 0 0 0 rgba(255, 201, 7, 0.45); }
+        50% { box-shadow: 0 6px 30px rgba(255, 201, 7, 0.55), 0 0 0 14px rgba(255, 201, 7, 0); }
+      }
+      .wd-mark { text-shadow: 0 0 18px rgba(255, 201, 7, 0.45), 0 2px 0 rgba(0, 0, 0, 0.35);
+        background: linear-gradient(100deg, #FFC907 40%, #fff4c2 50%, #FFC907 60%); background-size: 250% 100%;
+        -webkit-background-clip: text; background-clip: text; color: transparent; animation: wd-shine 5s ease-in-out infinite; }
+      @keyframes wd-shine { 0%, 60% { background-position: 100% 0; } 100% { background-position: -50% 0; } }
+      .wd-card { background: rgba(10, 18, 34, 0.55); backdrop-filter: blur(3px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 24px; }
+      .wd-title { white-space: nowrap; }
+      .wd-toast { display: none; }
+      @media (max-width: 520px) {
+        .wd-title .text-xl { font-size: 1.05rem; }
+        .wd-status { display: none; }
+        .wd-toast { display: block; }
+        .wd-hide-xs { display: none; }
+      }
+      @media (prefers-reduced-motion: reduce) { .wd-cta, .wd-mark { animation: none; } }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="./game.js"></script>
+  </body>
+</html>
